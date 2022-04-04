@@ -12,6 +12,7 @@
         <module>Flume</module>
         <module>Zookeeper</module>
         <module>Kafka</module>
+        <module>GmallEtlProject</module>
     </modules>
 
 </project>
