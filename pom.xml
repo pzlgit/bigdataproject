@@ -13,6 +13,7 @@
         <module>Zookeeper</module>
         <module>Kafka</module>
         <module>GmallEtlProject</module>
+        <module>Scala</module>
     </modules>
 
 </project>
