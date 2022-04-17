@@ -6,7 +6,7 @@ package com.atguigu.bigdata.scala.chapter06
 class Scala_Object_Package {
 
   def main(args: Array[String]): Unit = {
-      test()
+    test()
   }
 
 }
