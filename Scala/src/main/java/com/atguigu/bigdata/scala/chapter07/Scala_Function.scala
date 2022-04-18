@@ -48,12 +48,61 @@ object Scala_Function {
     )
     println(map)
 
-    println(list.groupBy(_%2))
+    println(list.groupBy(_ % 2))
 
     // 集合排序
     val list7 = List(5, 2, 6, 4, 10)
     println(list7.sortBy(num => num)(Ordering.Int.reverse))
-    println(list7.sortWith((left , right) => {left < right}))
+    println(list7.sortWith((left, right) => {
+      left < right
+    }))
+
+    // mapValues
+    val map1 = Map("a" -> 1, "b" -> 2)
+    val map2 = map1.mapValues(_ * 2)
+    println(map2)
+    println("mapValues =>" + map1.mapValues(_ * 2))
+
+    // 对象进行排序
+    val user1 = new User10()
+    val user2 = new User10()
+    val user3 = new User10()
+    val user4 = new User10()
+    user1.age = 10
+    user1.level = 1
+    user2.age = 30
+    user2.level = 4
+    user3.age = 20
+    user3.level = 3
+    user4.age = 30
+    user4.level = 3
+
+    val listUser = List(user1, user2, user3, user4)
+    val list8 = listUser.sortWith((left, right) => {
+      if (left.age < right.age) {
+        true
+      } else if (left.age == right.age) {
+        left.level > right.level
+      } else {
+        false
+      }
+    })
+    println(list8)
+
+    // 也可以采用 Tuple 元组排序
+    val resultList = list8.sortBy(user =>
+      (user.age, user.level)
+    )(Ordering.Tuple2(Ordering.Int.reverse, Ordering.Int))
+    println(resultList)
+
 
   }
+
+}
+
+class User10 {
+  var age: Int = _
+  var level: Int = _
+
+  override def toString = s"[User10]($age)($level)"
 }
