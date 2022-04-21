@@ -15,6 +15,7 @@
         <module>GmallEtlProject</module>
         <module>Scala</module>
         <module>Spark</module>
+        <module>Hadoop</module>
     </modules>
 
 </project>
