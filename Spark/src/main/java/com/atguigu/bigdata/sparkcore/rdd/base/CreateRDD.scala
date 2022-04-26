@@ -1,4 +1,4 @@
-package com.atguigu.bigdata.sparkcore.rdd
+package com.atguigu.bigdata.sparkcore.rdd.base
 
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}

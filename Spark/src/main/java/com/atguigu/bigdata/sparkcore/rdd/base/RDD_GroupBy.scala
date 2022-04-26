@@ -1,4 +1,4 @@
-package com.atguigu.bigdata.sparkcore.rdd
+package com.atguigu.bigdata.sparkcore.rdd.base
 
 import org.apache.spark.{SparkConf, SparkContext}
 
@@ -21,7 +21,7 @@ object RDD_GroupBy {
     println("====================")
     // 创建一个RDD,按照元素首字母第一个单词相同分组
     val rdd3 = sc.makeRDD(List("Hive", "Hadoop", "Spark", "Scala", "Java", "DataX"))
-    val rdd4 = rdd3.groupBy(_.substring(0,1))
+    val rdd4 = rdd3.groupBy(_.substring(0, 1))
     rdd4.collect().foreach(println(_))
     sc.stop()
   }
