@@ -5,7 +5,7 @@ import org.apache.spark.sql.SparkSession
 /**
  *
  * @author pangzl
- * @create 2022-05-03 19:55
+ * @create 2022-05-05 15:51
  */
 object SparkSQL08_Load {
 
@@ -15,10 +15,7 @@ object SparkSQL08_Load {
       .appName("SparkSQLTest")
       .getOrCreate()
 
-    spark.read.format("json").load("data/user.json").show()
-
-    // format 指定加载数据类型
-
+    spark.read.load("data/output/part-00000-2bc8235c-a9e5-4ecc-8b07-24d3613df434-c000.snappy.parquet").show()
 
     spark.stop()
   }

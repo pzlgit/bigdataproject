@@ -4,9 +4,10 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{Dataset, SaveMode, SparkSession}
 
 /**
+ * 向 MySQL中写数据
  *
  * @author pangzl
- * @create 2022-05-03 20:16
+ * @create 2022-05-05 16:10
  */
 object SparkSQL11_MySQL_Write {
 
@@ -15,15 +16,13 @@ object SparkSQL11_MySQL_Write {
       .master("local[*]")
       .appName("SparkSQLTest")
       .getOrCreate()
-    // 向MySQL中写数据
-    // 1. 准备数据
-    val rdd: RDD[User] = spark.sparkContext.makeRDD(
-      List(User(3000, "zhangsan"), User(3001, "lisi"))
-    )
-    // 2. 将rdd转化为 DataSet
+
     import spark.implicits._
+
+    // 准备数据
+    val rdd: RDD[User] = spark.sparkContext.makeRDD(List(User(3002, "zhangsan"), User(3003, "lisi")))
     val ds: Dataset[User] = rdd.toDS()
-    // 3. 向mysql中写入数据
+    // 向Mysql中写入数据
     ds.write.format("jdbc")
       .option("url", "jdbc:mysql://hadoop102:3306/gmall")
       .option("user", "root")
@@ -31,6 +30,7 @@ object SparkSQL11_MySQL_Write {
       .option("dbtable", "user_info")
       .mode(SaveMode.Append)
       .save()
+
 
     spark.stop()
   }

@@ -3,10 +3,10 @@ package com.atguigu.bigdata.sparksql
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
 /**
- * 自定义UDF函数，给name加前缀
+ * 自定义一个UDF实现name名称前添加前缀Name:
  *
  * @author pangzl
- * @create 2022-05-03 19:13
+ * @create 2022-05-05 15:08
  */
 object SparkSQL05_UDF {
 
@@ -15,16 +15,17 @@ object SparkSQL05_UDF {
       .master("local[*]")
       .appName("SparkSQLTest")
       .getOrCreate()
-    // 读取文件
+
     val df: DataFrame = spark.read.json("data/user.json")
-    // 创建临时表
     df.createOrReplaceTempView("user")
+
     // 自定义UDF函数
-    spark.udf.register("prefixName", (name: String) => {
-      "Name:" + name
+    spark.udf.register("prefixName", (x: String) => {
+      "Name:" + x
     })
-    // 调用sql
-    spark.sql("select prefixName(name) from user").show()
+
+    spark.sql("select prefixName(name),age from user").show()
+
     spark.stop()
   }
 }

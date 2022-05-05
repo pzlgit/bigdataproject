@@ -4,10 +4,9 @@ import org.apache.spark.sql._
 import org.apache.spark.sql.expressions.Aggregator
 
 /**
- * 自定义UDAF聚合函数实现求平均年龄
  *
  * @author pangzl
- * @create 2022-05-03 19:17
+ * @create 2022-05-05 15:15
  */
 object SparkSQL06_UDAF {
 
@@ -17,48 +16,52 @@ object SparkSQL06_UDAF {
       .appName("SparkSQLTest")
       .getOrCreate()
 
-    // 1. 读取文件数据
     val df: DataFrame = spark.read.json("data/user.json")
-    // 2. 创建临时视图
     df.createOrReplaceTempView("user")
-    // 注册UDAF函数
-    spark.udf.register("MyAvg", functions.udaf(new MyAvgUDAF()))
-    // 编写SQL
-    spark.sql("select MyAvg(age) from user").show()
+
+    // 注册自定义UDAF
+    spark.udf.register("myAvg", functions.udaf(new MyAvgUDAF))
+
+    spark.sql("select myAvg(age) from user").show()
+
     spark.stop()
   }
 
-  case class Buff(var sum: Long, var count: Long)
+  case class Buff(var total: Long,var count: Long)
 
-  class MyAvgUDAF extends Aggregator[Long, Buff, Long] {
+  /**
+   * 自定义UDAF
+   * IN : Long
+   * Buff : total: Long count: Long
+   * Out : Double
+   */
+  class MyAvgUDAF extends Aggregator[Long, Buff, Double] {
 
     // 初始化缓冲区
-    override def zero: Buff = {
-      Buff(0L, 0L)
-    }
+    override def zero: Buff = Buff(0L, 0L)
 
-    // 将输入的年龄和缓冲区中的数据聚合
+    // 数据聚合
     override def reduce(buff: Buff, age: Long): Buff = {
-      buff.sum += age
+      buff.total += age
       buff.count += 1
       buff
     }
 
     // 多个缓冲区数据合并
     override def merge(b1: Buff, b2: Buff): Buff = {
-      b1.sum = b1.sum + b2.sum
-      b1.count = b1.count + b2.count
+      b1.total += b2.total
+      b1.count += b2.count
       b1
     }
 
-    // 完成聚合操作，输出最终结果
-    override def finish(reduction: Buff): Long = {
-      reduction.sum / reduction.count
+    // 最终结果
+    override def finish(buff: Buff): Double = {
+      buff.total / buff.count
     }
 
     override def bufferEncoder: Encoder[Buff] = Encoders.product
 
-    override def outputEncoder: Encoder[Long] = Encoders.scalaLong
+    override def outputEncoder: Encoder[Double] = Encoders.scalaDouble
 
   }
 
