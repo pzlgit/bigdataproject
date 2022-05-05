@@ -1,30 +1,35 @@
 package com.atguigu.bigdata.sparkstreaming
 
 import org.apache.spark.SparkConf
-import org.apache.spark.streaming.dstream.{DStream, ReceiverInputDStream}
+import org.apache.spark.streaming.dstream.ReceiverInputDStream
 import org.apache.spark.streaming.{Seconds, StreamingContext}
 
 /**
  *
+ * WordCount 案例
+ *
  * @author pangzl
- * @create 2022-05-04 18:42
+ * @create 2022-05-05 9:18
  */
 object SparkStreaming01_WordCount {
 
   def main(args: Array[String]): Unit = {
-    // 构建SparkStreaming环境
+    // 1. 初始化Spark配置信息
     val sparkConf: SparkConf = new SparkConf().setMaster("local[*]").setAppName("sparkstreaming")
-    val ssc = new StreamingContext(sparkConf, Seconds(3))
+    // 2. 初始化SparkStreamingContext
+    val ssc: StreamingContext = new StreamingContext(sparkConf, Seconds(3))
 
-    // netcat 发送数据，接收数据并进行wordCount
-    val socketDstream: ReceiverInputDStream[String] = ssc.socketTextStream("localhost", 9999)
-    val wordDstream: DStream[String] = socketDstream.flatMap(_.split(" "))
-    val tupleDstream: DStream[(String, Int)] = wordDstream.map((_, 1))
-    val countResult: DStream[(String, Int)] = tupleDstream.reduceByKey(_ + _)
+    // 3. wordCount 实现逻辑
+    val lineDstream: ReceiverInputDStream[String] = ssc.socketTextStream("localhost", 9999)
+    lineDstream.flatMap(_.split(" "))
+      .map(((_, 1)))
+      .reduceByKey(_ + _)
+      .print()
 
-    countResult.print()
-
+    // 4. 启动SparkStreaming
     ssc.start()
+    // 5. 阻塞主线程
     ssc.awaitTermination()
   }
+
 }
