@@ -12,9 +12,10 @@ import java.net.Socket
 import java.nio.charset.StandardCharsets
 
 /**
+ * 需求：自定义数据源，实现监控某个端口号，获取该端口号内容。
  *
  * @author pangzl
- * @create 2022-05-04 19:02
+ * @create 2022-05-05 9:36
  */
 object SparkStreaming03_CustomerReceiver {
 
@@ -24,9 +25,9 @@ object SparkStreaming03_CustomerReceiver {
     // 2.初始化SparkStreamingContext
     val ssc = new StreamingContext(sparkConf, Seconds(3))
 
-    // 3. 自定义数据源
-    val ds: ReceiverInputDStream[String] = ssc.receiverStream(new CustomerReceiver("localhost", 9999))
-    ds.flatMap(_.split(" "))
+    // 3. 自定义数据源采集数据
+    val lineDs: ReceiverInputDStream[String] = ssc.receiverStream(new CustomerReceiver("localhost", 9999))
+    lineDs.flatMap(_.split(" "))
       .map((_, 1))
       .reduceByKey(_ + _)
       .print()
@@ -36,47 +37,50 @@ object SparkStreaming03_CustomerReceiver {
     ssc.awaitTermination()
   }
 
-  // 自定义数据源
-  class CustomerReceiver(host: String, port: Int) extends
-    Receiver[String](StorageLevel.MEMORY_ONLY) {
-
-    // 初始化启动的时候执行逻辑
+  /**
+   * 自定义采集器
+   * String ： 返回值类型
+   * StorageLevel.MEMORY_ONLY ： 返回值存储方式 内存
+   */
+  class CustomerReceiver(host: String, port: Int) extends Receiver[String](StorageLevel.MEMORY_ONLY) {
+    // 采集器启动时调用，作用:读取数据并将数据发送给Spark
     override def onStart(): Unit = {
-      // 开启一个线程读取数据
+      // 开启一个线程专门用于采集数据
       new Thread("Socket Receiver") {
         override def run() = {
-          // 调用方法
           receiver()
         }
       }.start()
     }
 
+    // 采集逻辑
     def receiver(): Unit = {
-      // 创建一个Socket
+      // 1. 创建一个Socket
       val socket = new Socket(host, port)
-      // 创建一个BufferedReader用于读取端口传递来的数据
-      val reader = new BufferedReader(new InputStreamReader(socket.getInputStream, StandardCharsets.UTF_8))
-      // 读取数据
-      var data: String = reader.readLine()
-      // 当receiver没有关闭并且输入数据不为空，则循环发送数据给Spark
-      while (!isStopped() && data != null) {
-        // 存储数据
-        store(data)
-        data = reader.readLine()
+      // 2. 创建BufferReader用于读取端口传来的数据
+      val reader = new BufferedReader(new InputStreamReader(
+        socket.getInputStream, StandardCharsets.UTF_8
+      ))
+      // 3.读取数据
+      var line: String = reader.readLine()
+      // 4. 当Receiver没有关闭且输入数据不为空，则循环发送数据给Spark
+      while (!isStopped() && line != null) {
+        store(line)
+        line = reader.readLine()
       }
-      // 如果循环结束，则关闭资源
+
+      // 5. 如果循环结束，则关闭资源
       reader.close()
       socket.close()
 
-      // 重启接收任务
+      // 6.重启接收任务
       restart("restart")
     }
 
-    // 当采集器停止时执行逻辑
+    // 采集器关闭的时候调用
     override def onStop(): Unit = {
+
     }
 
   }
-
 }
-

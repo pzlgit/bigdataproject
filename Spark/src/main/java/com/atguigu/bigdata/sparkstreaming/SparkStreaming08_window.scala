@@ -7,9 +7,9 @@ import org.apache.spark.streaming.{Seconds, StreamingContext}
 /**
  *
  * @author pangzl
- * @create 2022-05-04 20:16
+ * @create 2022-05-05 10:47
  */
-object sparkStreaming06_updateStateByKey {
+object SparkStreaming08_window {
 
   def main(args: Array[String]): Unit = {
     // 1.初始化Spark配置信息
@@ -17,28 +17,17 @@ object sparkStreaming06_updateStateByKey {
     // 2.初始化SparkStreamingContext
     val ssc = new StreamingContext(sparkConf, Seconds(3))
 
-    ssc.checkpoint("./ck")
-
-    val ds: ReceiverInputDStream[String] = ssc.socketTextStream("localhost", 9998)
+    // 3. 统计WordCount：3秒一个批次，窗口12秒，滑步6秒。
+    val ds: ReceiverInputDStream[String] = ssc.socketTextStream("localhost", 9999)
     val wordDs: DStream[(String, Int)] = ds.flatMap(_.split(" "))
       .map((_, 1))
+    val windowDs: DStream[(String, Int)] = wordDs.window(Seconds(12), Seconds(6))
 
-    val result: DStream[(String, Int)] = wordDs.updateStateByKey[Int](updateFunc)
+    val result: DStream[(String, Int)] = windowDs.reduceByKey(_ + _)
     result.print()
 
     // 4.启动任务并阻塞主线程
     ssc.start()
     ssc.awaitTermination()
   }
-
-  // 自定义更新方法
-  def updateFunc = (seq: Seq[Int], state: Option[Int]) => {
-    // 当前批次数据累加
-    val currentCount: Int = seq.sum
-    // 历史批次数据累加
-    val previous: Int = state.getOrElse(0)
-    // 总的数据累加
-    Some(currentCount + previous)
-  }
-
 }

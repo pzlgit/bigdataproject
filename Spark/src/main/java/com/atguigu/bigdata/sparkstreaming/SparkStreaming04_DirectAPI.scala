@@ -7,11 +7,12 @@ import org.apache.spark.streaming.kafka010.{ConsumerStrategies, KafkaUtils, Loca
 import org.apache.spark.streaming.{Seconds, StreamingContext}
 
 /**
+ * 通过SparkStreaming从Kafka读取数据，并将读取过来的数据计算，打印到控制台。
  *
  * @author pangzl
- * @create 2022-05-04 19:24
+ * @create 2022-05-05 9:56
  */
-object DirectAPI {
+object SparkStreaming04_DirectAPI {
 
   def main(args: Array[String]): Unit = {
     // 1.初始化Spark配置信息
@@ -19,28 +20,25 @@ object DirectAPI {
     // 2.初始化SparkStreamingContext
     val ssc = new StreamingContext(sparkConf, Seconds(3))
 
-    // 3. 从Kafka中获取数据
-
-    // 3.1 kafka配置信息
+    // 3.通过SparkStreaming从Kafka读取数据，并将读取过来的数据计算，打印到控制台。
+    //3.1 定义Kafka配置参数
     val kafkaPara: Map[String, Object] = Map[String, Object](
       ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG -> "hadoop102:9092,hadoop103:9092,hadoop104:9092",
       ConsumerConfig.GROUP_ID_CONFIG -> "atguigu",
       "key.deserializer" -> "org.apache.kafka.common.serialization.StringDeserializer",
       "value.deserializer" -> "org.apache.kafka.common.serialization.StringDeserializer"
     )
-    // 3.2 读取Kafka数据创建Dstream
-    val kafkaDs: InputDStream[ConsumerRecord[String, String]] = KafkaUtils.createDirectStream[String, String](
+    //3.2 读取Kafka数据创建Dstream
+    val kafkaDstream: InputDStream[ConsumerRecord[String, String]] = KafkaUtils.createDirectStream[String, String](
       ssc,
       LocationStrategies.PreferConsistent,
-      ConsumerStrategies.Subscribe[String, String](Set("atguigu"),
-        kafkaPara
+      ConsumerStrategies.Subscribe[String, String](Set("atguigu"), kafkaPara
       ))
-    // 3.3 将每条消息中的value取出
-    val messageDs: DStream[String] = kafkaDs.map(_.value())
-    // 3.4 计算wordCount
-    messageDs.flatMap(_.split(" "))
-      .map((_, 1))
-      .reduceByKey(_ + _)
+    // 3.3 将消息中的数据取出
+    val data: DStream[String] = kafkaDstream.map(_.value())
+    data.flatMap(_.split(" "))
+      .map((_,1))
+      .reduceByKey(_+_)
       .print()
 
     // 4.启动任务并阻塞主线程
