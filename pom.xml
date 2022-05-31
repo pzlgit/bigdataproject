@@ -16,6 +16,7 @@
         <module>Scala</module>
         <module>Spark</module>
         <module>Hadoop</module>
+        <module>HBase</module>
     </modules>
 
 </project>
