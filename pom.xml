@@ -17,6 +17,8 @@
         <module>Spark</module>
         <module>Hadoop</module>
         <module>HBase</module>
+        <module>Phoenix</module>
+        <module>Phoenix-Thin</module>
     </modules>
 
 </project>

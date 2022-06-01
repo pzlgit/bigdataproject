@@ -82,9 +82,9 @@ public class HBase_DML {
         Result result = table.get(get);
         for (Cell cell : result.rawCells()) {
             System.out.println(
-                    "CF" + Bytes.toString(cell.getFamilyArray()) +
-                            ",CN" + Bytes.toString(cell.getQualifierArray()) +
-                            ",Value" + Bytes.toString(cell.getValueArray())
+                    Bytes.toString(CellUtil.cloneRow(cell)) + ":" +
+                            Bytes.toString(CellUtil.cloneFamily(cell)) + ":" +
+                            Bytes.toString(CellUtil.cloneQualifier(cell)) + ":" + Bytes.toString(CellUtil.cloneValue(cell))
             );
         }
         table.close();
@@ -99,6 +99,8 @@ public class HBase_DML {
     public static void scan(String nameSpace, String tableName) throws IOException {
         Table table = connection.getTable(TableName.valueOf(nameSpace, tableName));
         Scan scan = new Scan();
+        scan.withStartRow(Bytes.toBytes("1001"))
+                .withStopRow(Bytes.toBytes("1001!"));
         ResultScanner scanner = table.getScanner(scan);
         for (Result result : scanner) {
             for (Cell cell : result.rawCells()) {
