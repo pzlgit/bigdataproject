@@ -19,6 +19,7 @@
         <module>HBase</module>
         <module>Phoenix</module>
         <module>Phoenix-Thin</module>
+        <module>Elasticsearch</module>
     </modules>
 
 </project>
