@@ -20,6 +20,8 @@
         <module>Phoenix</module>
         <module>Phoenix-Thin</module>
         <module>Elasticsearch</module>
+        <module>gmall-realtime-spark</module>
+        <module>gmall-realtime-spark</module>
     </modules>
 
 </project>
