@@ -10,7 +10,8 @@ import java.util.ResourceBundle
  */
 object PropertiesUtils {
 
-  private val resourceBundle: ResourceBundle = ResourceBundle.getBundle("config")
+  private val resourceBundle: ResourceBundle =
+    ResourceBundle.getBundle("config")
 
   /**
    * 根据key获取对应的配置文件中的值

@@ -33,8 +33,8 @@ object MyKafkaUtils {
   /**
    * 消费者消费消息（默认offsets消费数据）
    */
-  def getKafkaDStream( topicName: String,
-                       scc: StreamingContext,
+  def getKafkaDStream(topicName: String,
+                      scc: StreamingContext,
                       groupId: String): InputDStream[ConsumerRecord[String, String]] = {
     // 增加消费者组配置
     consumerConfig.put(ConsumerConfig.GROUP_ID_CONFIG, groupId)
