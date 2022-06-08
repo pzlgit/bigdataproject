@@ -3,7 +3,7 @@ package com.atguigu.spark.bean
 /**
  *
  * @author pangzl
- * @create 2022-06-07 19:44
+ * @create 2022-06-08 19:07
  */
 case class PageDisplayLog(
                            mid: String,
@@ -27,5 +27,4 @@ case class PageDisplayLog(
                            display_order: String,
                            display_pos_id: String,
                            ts: Long
-                         ) {
-}
+                         ) {}

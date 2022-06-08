@@ -3,7 +3,7 @@ package com.atguigu.spark.bean
 /**
  *
  * @author pangzl
- * @create 2022-06-07 19:50
+ * @create 2022-06-08 19:07
  */
 case class StartLog(
                      mid: String,
@@ -21,5 +21,4 @@ case class StartLog(
                      open_ad_ms: Long,
                      open_ad_skip_ms: Long,
                      ts: Long
-                   ) {
-}
+                   ) {}

@@ -3,7 +3,7 @@ package com.atguigu.spark.bean
 /**
  *
  * @author pangzl
- * @create 2022-06-07 19:34
+ * @create 2022-06-08 19:07
  */
 case class PageActionLog(
                           mid: String,
@@ -26,5 +26,4 @@ case class PageActionLog(
                           action_item_type: String,
                           action_ts: Long,
                           ts: Long
-                        ) {
-}
+                        ) {}
