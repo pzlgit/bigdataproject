@@ -2,10 +2,7 @@ package com.atguigu.spark.app
 
 import com.alibaba.fastjson.serializer.SerializeConfig
 import com.alibaba.fastjson.{JSON, JSONArray, JSONObject}
-import com.atguigu.spark.bean.PageActionLog.PageActionLog
-import com.atguigu.spark.bean.PageDisplayLog.PageDisplayLog
-import com.atguigu.spark.bean.PageLog.PageLog
-import com.atguigu.spark.bean.StartLog.StartLog
+import com.atguigu.spark.bean.{PageActionLog, PageDisplayLog, PageLog, StartLog}
 import com.atguigu.spark.utils.MyKafkaUtils
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.spark.SparkConf
@@ -96,8 +93,9 @@ object BaseLogApp {
                 val lastPageId: String =
                   pageObj.getString("last_page_id")
                 val duringTime: Long = pageObj.getLong("during_time")
+                val sourceType: String = pageObj.getString("source_type")
                 // 封装Bean
-                val pageLog = PageLog(mid, uid, ar, ch, isNew, md, os, ba, vc, pageId, lastPageId, pageItem, pageItemType, duringTime, ts)
+                val pageLog = PageLog(mid, uid, ar, ch, isNew, md, os, ba, vc, pageId, lastPageId, pageItem, pageItemType, duringTime, sourceType, ts)
                 // 页面日志发送到Kafka
                 MyKafkaUtils.send(
                   dwd_page_log,
@@ -119,7 +117,7 @@ object BaseLogApp {
                     // 封装Bean
                     // 封装Bean
                     val pageActionLog = PageActionLog(mid, uid, ar, ch, isNew, md, os, vc, ba, pageId, lastPageId,
-                      pageItem, pageItemType, duringTime, actionId, actionItem, actionItemType, actionTs, ts)
+                      pageItem, pageItemType, duringTime, sourceType, actionId, actionItem, actionItemType, actionTs, ts)
                     // 动作日志发送到Kafka
                     MyKafkaUtils.send(dwd_page_action, JSON.toJSONString(pageActionLog, new SerializeConfig(true)))
                   }
@@ -143,7 +141,7 @@ object BaseLogApp {
                       displayObj.getString("pos_id")
                     // 封装Bean
                     val displayLog = PageDisplayLog(mid, uid, ar, ch, isNew, md, os, vc, ba, pageId, lastPageId,
-                      pageItem, pageItemType, duringTime, displayType, displayItem, displayItemType, displayOrder, displayPosId, ts)
+                      pageItem, pageItemType, duringTime, sourceType, displayType, displayItem, displayItemType, displayOrder, displayPosId, ts)
                     // 曝光日志发送到Kafka
                     MyKafkaUtils.send(dwd_page_display, JSON.toJSONString(displayLog, new SerializeConfig(true)))
                   }
