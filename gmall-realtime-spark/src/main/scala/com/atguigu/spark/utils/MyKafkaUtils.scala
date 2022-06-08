@@ -11,65 +11,65 @@ import java.util.Properties
 import scala.collection.mutable
 
 /**
- * Kafka操作工具类，用于生产消息和消费消息
+ * Kafka工具类，用于生产或者消费数据
  *
  * @author pangzl
- * @create 2022-06-07 18:26
+ * @create 2022-06-08 18:46
  */
 object MyKafkaUtils {
 
-  // Kafka消费者配置信息
-  private val consumerConfig: mutable.Map[String, String] = mutable.Map[String, String](
+  /**
+   * Kafka消费者配置
+   */
+  private val consumerConfig = mutable.Map[String, String](
     ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG -> PropertiesUtils("kafka.bootstrap.servers"),
     ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG -> "org.apache.kafka.common.serialization.StringDeserializer",
     ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG -> "org.apache.kafka.common.serialization.StringDeserializer",
-    // Offsets重置 latest(默认)：重置到结束的位置，已有的数据不会消费
     ConsumerConfig.AUTO_OFFSET_RESET_CONFIG -> "latest",
-    // 自动提交Offsets,默认开启
     ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG -> "true",
-    // 自动提交Offsets的时间频率，默认5000ms
     ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG -> "5000"
   )
 
   /**
-   * 消费者消费消息（默认offsets消费数据）
+   * 消费数据（默认offsets消费数据）
    */
-  def getKafkaDStream(topicName: String,
-                      scc: StreamingContext,
-                      groupId: String): InputDStream[ConsumerRecord[String, String]] = {
-    // 增加消费者组配置
+  def getKafkaDStream(
+                       topic: String,
+                       ssc: StreamingContext,
+                       groupId: String
+                     ): InputDStream[ConsumerRecord[String, String]] = {
+    // 消费者配置中增加消费者组名称
     consumerConfig.put(ConsumerConfig.GROUP_ID_CONFIG, groupId)
-    // 1.使用Kafka提供的工具类消费消息
+    // SparkStreaming读取Kafka数据
     val kafkaDStream: InputDStream[ConsumerRecord[String, String]] =
       KafkaUtils.createDirectStream[String, String](
-        scc,
+        ssc,
         LocationStrategies.PreferConsistent,
         ConsumerStrategies.Subscribe[String, String](
-          Array(topicName),
+          Array(topic),
           consumerConfig
         )
       )
     kafkaDStream
   }
 
-
   /**
-   * 消费者消费消息（指定offsets消费数据）
+   * 消费数据（指定offsets消费数据）
    */
-  def getKafkaDStream(topicName: String,
-                      scc: StreamingContext,
-                      groupId: String,
-                      offsets : Map[TopicPartition,Long]
+  def getKafkaDStream(topic: String,
+                      ssc: StreamingContext,
+                      offsets: Map[TopicPartition, Long],
+                      groupId: String
                      ): InputDStream[ConsumerRecord[String, String]] = {
-    // 增加消费者组配置
+    // 消费者配置中增加消费者组名称
     consumerConfig.put(ConsumerConfig.GROUP_ID_CONFIG, groupId)
-    // 1.使用Kafka提供的工具类消费消息
+    // SparkStreaming读取Kafka数据
     val kafkaDStream: InputDStream[ConsumerRecord[String, String]] =
       KafkaUtils.createDirectStream[String, String](
-        scc,
+        ssc,
         LocationStrategies.PreferConsistent,
         ConsumerStrategies.Subscribe[String, String](
-          Array(topicName),
+          Array(topic),
           consumerConfig,
           offsets
         )
@@ -77,34 +77,53 @@ object MyKafkaUtils {
     kafkaDStream
   }
 
-  // 创建生产者对象
-  var producer: KafkaProducer[String, String] = createKafkaProducer()
+  private var producer: KafkaProducer[String, String] = createKafkaProducer()
 
   /**
-   * 构建生产者对象
+   * 创建Kafka客户端
    */
   def createKafkaProducer(): KafkaProducer[String, String] = {
-    // Kafka生产者配置
+    // 生产者配置
     val properties = new Properties()
-    properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,
-      PropertiesUtils("kafka.bootstrap.servers"))
-    properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
-      "org.apache.kafka.common.serialization.StringSerializer")
-    properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
-      "org.apache.kafka.common.serialization.StringSerializer")
-    // 生产者端开启幂等性
+    properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, PropertiesUtils("kafka.bootstrap.servers"))
+    properties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer")
+    properties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer")
     properties.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, "true")
-    // 创建生产者
+    // 创建Kafka生产者
     val producer = new KafkaProducer[String, String](properties)
     producer
   }
 
   /**
-   * 生产者生产消息
+   * Kafka发送数据
    */
-  def send(topicName: String, value: String): Unit = {
-    producer.send(new ProducerRecord[String, String](topicName, value))
+  def send(topic: String, message: String) = {
+    producer.send(new ProducerRecord[String, String](topic, message))
   }
 
+  /**
+   * Kafka指定Key发送数据
+   */
+  def send(topic: String, key: String, message: String) = {
+    producer.send(new ProducerRecord[String, String](topic, key, message))
+  }
+
+  /**
+   * 将Kafka内存中的数据刷写到Broker
+   */
+  def flush(): Unit = {
+    if (producer != null) {
+      producer.flush()
+    }
+  }
+
+  /**
+   * 关闭生产者对象
+   */
+  def close(): Unit = {
+    if (producer != null) {
+      producer.close()
+    }
+  }
 
 }
