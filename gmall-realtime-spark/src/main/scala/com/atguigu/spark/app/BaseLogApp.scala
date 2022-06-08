@@ -3,10 +3,12 @@ package com.atguigu.spark.app
 import com.alibaba.fastjson.serializer.SerializeConfig
 import com.alibaba.fastjson.{JSON, JSONArray, JSONObject}
 import com.atguigu.spark.bean.{PageActionLog, PageDisplayLog, PageLog, StartLog}
-import com.atguigu.spark.utils.MyKafkaUtils
+import com.atguigu.spark.utils.{MyKafkaUtils, OffsetManagerUtil}
 import org.apache.kafka.clients.consumer.ConsumerRecord
+import org.apache.kafka.common.TopicPartition
 import org.apache.spark.SparkConf
-import org.apache.spark.streaming.dstream.{DStream, InputDStream}
+import org.apache.spark.streaming.dstream.DStream
+import org.apache.spark.streaming.kafka010.{HasOffsetRanges, OffsetRange}
 import org.apache.spark.streaming.{Seconds, StreamingContext}
 
 /**
@@ -41,9 +43,33 @@ object BaseLogApp {
     //  3.定义消费者组
     val group_id: String = "ods_base_log_group"
 
+    // TODO 4.手动提交偏移量补充
+    // 在Redis中读取偏移量
+    val offsets: Map[TopicPartition, Long] = OffsetManagerUtil.getOffset(ods_base_topic, group_id)
+    // 判断数据是否读取到
+    var kafkaDStream: DStream[ConsumerRecord[String, String]] = null
+    if (offsets != null && offsets.nonEmpty) {
+      // 指定Offset位置消费
+      kafkaDStream = MyKafkaUtils.getKafkaDStream(ods_base_topic, ssc, group_id, offsets)
+    } else {
+      // 默认位置消费
+      kafkaDStream = MyKafkaUtils.getKafkaDStream(ods_base_topic, ssc, group_id)
+    }
+
+    // 在数据转化前提取本次流中的offset结束点
+    var ranges: Array[OffsetRange] = null
+    kafkaDStream = kafkaDStream.transform(
+      rdd => {
+        println(rdd.getClass.getName)
+        ranges = rdd.asInstanceOf[HasOffsetRanges].offsetRanges
+        rdd
+      }
+    )
+
+
     // 4.消费数据
-    val kafkaDStream: InputDStream[ConsumerRecord[String, String]] =
-      MyKafkaUtils.getKafkaDStream(ods_base_topic, ssc, group_id)
+    //    val kafkaDStream: InputDStream[ConsumerRecord[String, String]] =
+    //      MyKafkaUtils.getKafkaDStream(ods_base_topic, ssc, group_id)
     // 测试是否消费到数据
     //kafkaDStream.map(_.value()).print(3)
 
@@ -167,16 +193,15 @@ object BaseLogApp {
                 // 启动日志发送到Kafka
                 MyKafkaUtils.send(dwd_start_log,
                   JSON.toJSONString(startLog, new SerializeConfig(true)))
-
               }
-
 
             }
 
           }
         )
+        // foreachRdd里面：driver端执行，一个批次执行一次
+        OffsetManagerUtil.saveOffset(ods_base_topic, group_id, ranges)
       }
-
     )
 
     ssc.start()

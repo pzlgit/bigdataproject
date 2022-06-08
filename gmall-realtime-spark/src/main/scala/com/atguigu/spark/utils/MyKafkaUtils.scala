@@ -2,6 +2,7 @@ package com.atguigu.spark.utils
 
 import org.apache.kafka.clients.consumer.{ConsumerConfig, ConsumerRecord}
 import org.apache.kafka.clients.producer.{KafkaProducer, ProducerConfig, ProducerRecord}
+import org.apache.kafka.common.TopicPartition
 import org.apache.spark.streaming.StreamingContext
 import org.apache.spark.streaming.dstream.InputDStream
 import org.apache.spark.streaming.kafka010.{ConsumerStrategies, KafkaUtils, LocationStrategies}
@@ -46,6 +47,31 @@ object MyKafkaUtils {
         ConsumerStrategies.Subscribe[String, String](
           Array(topicName),
           consumerConfig
+        )
+      )
+    kafkaDStream
+  }
+
+
+  /**
+   * 消费者消费消息（指定offsets消费数据）
+   */
+  def getKafkaDStream(topicName: String,
+                      scc: StreamingContext,
+                      groupId: String,
+                      offsets : Map[TopicPartition,Long]
+                     ): InputDStream[ConsumerRecord[String, String]] = {
+    // 增加消费者组配置
+    consumerConfig.put(ConsumerConfig.GROUP_ID_CONFIG, groupId)
+    // 1.使用Kafka提供的工具类消费消息
+    val kafkaDStream: InputDStream[ConsumerRecord[String, String]] =
+      KafkaUtils.createDirectStream[String, String](
+        scc,
+        LocationStrategies.PreferConsistent,
+        ConsumerStrategies.Subscribe[String, String](
+          Array(topicName),
+          consumerConfig,
+          offsets
         )
       )
     kafkaDStream
