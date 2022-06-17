@@ -22,6 +22,7 @@
         <module>Elasticsearch</module>
         <module>gmall-realtime-spark</module>
         <module>gmall-realtime-spark</module>
+        <module>FlinkTutorial</module>
     </modules>
 
 </project>
