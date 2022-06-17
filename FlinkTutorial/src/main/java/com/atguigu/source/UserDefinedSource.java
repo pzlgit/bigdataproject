@@ -15,13 +15,13 @@ public class UserDefinedSource {
 
     public static void main(String[] args) throws Exception {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-        env.setParallelism(1);
+       // env.setParallelism(3);
         // 从自定义数据源中读取数据
-        env.addSource(new ClickSource()).print("clickSource");
+        env.addSource(new ClickSource()).setParallelism(2).print("clickSource");
         // 并行度只能设置为1，否则会抛出异常The parallelism of non parallel operator must be 1.
 
         // 读取并行数据源
-        env.addSource(new CustomSource()).setParallelism(2).print("customSource");
+        // env.addSource(new CustomSource()).setParallelism(2).print("customSource");
         env.execute();
     }
 

@@ -17,7 +17,7 @@ public class ReadTextFileSource {
         env.readTextFile("input/words.txt").print("readTextFile");
         env.readTextFile("input").print("readTextFile");
         // 从hadoop文件系统中读取文件
-        //env.readTextFile("hdfs://hadoop102:9820/company/dept/dept.txt").print("hadoop");
+        env.readTextFile("hdfs://hadoop102:9820/company/dept/dept.txt").print("hadoop");
         env.execute();
     }
 }
