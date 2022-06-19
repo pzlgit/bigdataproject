@@ -1,39 +1,39 @@
 package com.atguigu.source;
 
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
-import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 
+import java.util.Arrays;
 import java.util.Properties;
 
 /**
- * Kafka数据源数据读取
+ * 从Kafka读取数据
  *
  * @author pangzl
- * @create 2022-06-17 20:28
+ * @create 2022-06-18 19:31
  */
 public class KafkaSource {
 
     public static void main(String[] args) throws Exception {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.setParallelism(1);
-        // 定义Kafka配置
+        // Kafka消费者配置
         Properties properties = new Properties();
-        properties.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "hadoop102:9092,hadoop103:9092");
-        properties.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer");
-        properties.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer");
-        properties.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
-        // 从Kafka中读取数据，Flink官方提供了flink-connector-kafka
-        DataStreamSource<String> clicks = env.addSource(
-                new FlinkKafkaConsumer<>(
-                        "clicks",
+        properties.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "hadoop102:9092");
+        properties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer");
+        properties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer");
+        properties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
+        properties.put(ConsumerConfig.GROUP_ID_CONFIG, "consumer-group");
+        // 从Kafka中读取数据，flink并没有提供预实现方法，提供了一个连接工具，flink-connector-kafka,实现了一个flinkKafkaConsumer
+        env.addSource(new FlinkKafkaConsumer(
+                        Arrays.asList("clicks", "clicks1"),
                         new SimpleStringSchema(),
                         properties
-                )
-        );
-        clicks.print("Kafka");
+                ))
+                .print("FlinkKafkaConsumer");
+
         env.execute();
     }
 }

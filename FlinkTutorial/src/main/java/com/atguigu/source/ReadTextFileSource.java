@@ -1,12 +1,13 @@
 package com.atguigu.source;
 
+import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 
 /**
- * 从文件中读取数据，一般用于批处理
+ * 从文件中读取数据
  *
  * @author pangzl
- * @create 2022-06-17 20:09
+ * @create 2022-06-18 19:23
  */
 public class ReadTextFileSource {
 
@@ -14,10 +15,8 @@ public class ReadTextFileSource {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.setParallelism(1);
         // 从文件中读取数据
-        env.readTextFile("input/words.txt").print("readTextFile");
-        env.readTextFile("input").print("readTextFile");
-        // 从hadoop文件系统中读取文件
-        env.readTextFile("hdfs://hadoop102:9820/company/dept/dept.txt").print("hadoop");
+        DataStreamSource<String> lineDataStreamSource = env.readTextFile("input/words.txt");
+        lineDataStreamSource.print("readTextFile");
         env.execute();
     }
 }

@@ -3,19 +3,18 @@ package com.atguigu.source;
 import com.atguigu.bean.Event;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.streaming.api.functions.source.SourceFunction;
+import org.apache.flink.streaming.api.functions.source.ParallelSourceFunction;
 
 import java.util.Calendar;
 import java.util.Random;
 
 /**
- * 自定义数据源
+ * 自定义并行数据源
  *
  * @author pangzl
- * @create 2022-06-18 19:47
+ * @create 2022-06-18 19:58
  */
-public class ClickSource implements SourceFunction<Event> {
-
+public class ParallelSource implements ParallelSourceFunction<Event> {
     // 定义一个数据生成标识位
     private Boolean running = true;
 
@@ -41,13 +40,13 @@ public class ClickSource implements SourceFunction<Event> {
         running = false;
     }
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) throws Exception{
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.setParallelism(2);
         // 读取自定义数据源
-        DataStreamSource<Event> streamSource = env.addSource(new ClickSource()).setParallelism(2);
+        DataStreamSource<Event> streamSource = env.addSource(new ParallelSource()).setParallelism(2);
         System.out.println(streamSource.getParallelism());
-        streamSource.print("clickSource");
+        streamSource.print("ParallelSource");
         env.execute();
     }
 }
