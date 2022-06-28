@@ -23,6 +23,7 @@
         <module>gmall-realtime-spark</module>
         <module>gmall-realtime-spark</module>
         <module>FlinkTutorial</module>
+        <module>flink-gmall-realtime</module>
     </modules>
 
 </project>
