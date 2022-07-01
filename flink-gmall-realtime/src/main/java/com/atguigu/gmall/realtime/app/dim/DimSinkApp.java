@@ -1,6 +1,8 @@
 package com.atguigu.gmall.realtime.app.dim;
 
 import com.alibaba.fastjson.JSONObject;
+import com.atguigu.gmall.realtime.app.func.DimSinkFunction;
+import com.atguigu.gmall.realtime.app.func.TableProcessFunction;
 import com.atguigu.gmall.realtime.bean.TableProcess;
 import com.atguigu.gmall.realtime.util.MyKafkaUtil;
 import com.ververica.cdc.connectors.mysql.source.MySqlSource;
@@ -150,10 +152,12 @@ public class DimSinkApp {
         BroadcastConnectedStream<JSONObject, String> connectDS = filterDS.connect(broadcastDS);
 
         // TODO 9.对关联后的数据处理-process
-        //SingleOutputStreamOperator<Object> dimDS = connectDS.process(new TableProcessFunction(state));
+        SingleOutputStreamOperator<JSONObject> dimDS = connectDS.process(new TableProcessFunction(state));
+
+        dimDS.print(">>>");
 
         // TODO 10.将维度表数据写入到Phoenix表中
-        //dimDS.addSink(new DimSinkFunction());
+        dimDS.addSink(new DimSinkFunction());
 
         env.execute();
     }
