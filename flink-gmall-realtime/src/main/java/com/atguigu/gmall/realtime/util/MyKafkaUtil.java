@@ -2,10 +2,15 @@ package com.atguigu.gmall.realtime.util;
 
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer;
+import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer;
 import org.apache.flink.streaming.connectors.kafka.KafkaDeserializationSchema;
+import org.apache.flink.streaming.connectors.kafka.KafkaSerializationSchema;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
 
+import javax.annotation.Nullable;
 import java.util.Properties;
 
 /**
@@ -18,7 +23,7 @@ public class MyKafkaUtil {
 
     private static final String KAFKA_HOST = "hadoop102:9092,hadoop103:9092,hadoop104:9092";
 
-    // 从Kafka读取数据，创建getKafkaConsumer(String topic, String groupId)方法
+    // 获取消费者对象
     public static FlinkKafkaConsumer<String> getKafkaConsumer(String topic, String groupId) {
         Properties properties = new Properties();
         properties.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA_HOST);
@@ -48,6 +53,27 @@ public class MyKafkaUtil {
                 properties
         );
         return kafkaConsumer;
+    }
+
+    // 获取生产者对象
+    public static FlinkKafkaProducer<String> getKafkaProducer(String topic) {
+        Properties properties = new Properties();
+        properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, KAFKA_HOST);
+        properties.put(ProducerConfig.TRANSACTION_TIMEOUT_CONFIG, 15 * 60 * 1000 + "");
+        // todo：注意：通过FlinkKafkaProducer创建的对象默认的Semantic的值是AT_LEAST_ONCE，不能保证精准一次消费
+        // todo: 需要使用如下的创建方式，指定Semantic为EXACTLY_ONCE才能保证精准一次消费
+        FlinkKafkaProducer<String> kafkaProducer = new FlinkKafkaProducer<>(
+                "default_topic",
+                new KafkaSerializationSchema<String>() {
+                    @Override
+                    public ProducerRecord<byte[], byte[]> serialize(String element, @Nullable Long timestamp) {
+                        return new ProducerRecord<byte[], byte[]>(topic, element.getBytes());
+                    }
+                },
+                properties,
+                FlinkKafkaProducer.Semantic.EXACTLY_ONCE
+        );
+        return kafkaProducer;
     }
 
 }
