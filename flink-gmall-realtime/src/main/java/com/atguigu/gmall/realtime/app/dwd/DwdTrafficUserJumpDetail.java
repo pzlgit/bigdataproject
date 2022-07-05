@@ -6,21 +6,16 @@ import com.alibaba.fastjson.JSONObject;
 import com.atguigu.gmall.realtime.util.MyKafkaUtil;
 import org.apache.flink.api.common.eventtime.SerializableTimestampAssigner;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
-import org.apache.flink.api.common.restartstrategy.RestartStrategies;
-import org.apache.flink.api.common.time.Time;
 import org.apache.flink.cep.CEP;
 import org.apache.flink.cep.PatternFlatSelectFunction;
 import org.apache.flink.cep.PatternFlatTimeoutFunction;
 import org.apache.flink.cep.PatternStream;
 import org.apache.flink.cep.pattern.Pattern;
 import org.apache.flink.cep.pattern.conditions.SimpleCondition;
-import org.apache.flink.runtime.state.hashmap.HashMapStateBackend;
-import org.apache.flink.streaming.api.CheckpointingMode;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.datastream.KeyedStream;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
-import org.apache.flink.streaming.api.environment.CheckpointConfig;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.util.Collector;
 import org.apache.flink.util.OutputTag;
@@ -43,7 +38,7 @@ public class DwdTrafficUserJumpDetail {
         env.setParallelism(4);
 
         // TODO 2. 检查点相关设置
-        env.enableCheckpointing(3000L, CheckpointingMode.EXACTLY_ONCE);
+        /*env.enableCheckpointing(3000L, CheckpointingMode.EXACTLY_ONCE);
         env.getCheckpointConfig().setCheckpointTimeout(30 * 1000L);
         env.getCheckpointConfig().setMinPauseBetweenCheckpoints(3000L);
         env.getCheckpointConfig().enableExternalizedCheckpoints(
@@ -57,7 +52,7 @@ public class DwdTrafficUserJumpDetail {
         env.getCheckpointConfig().setCheckpointStorage(
                 "hdfs://hadoop102:9820/gmall/ck"
         );
-        System.setProperty("HADOOP_USER_NAME", "atguigu");
+        System.setProperty("HADOOP_USER_NAME", "atguigu");*/
 
         // TODO 3.从Kafka中读取数据
         String topic = "dwd_traffic_page_log";
