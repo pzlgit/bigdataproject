@@ -112,7 +112,7 @@ public class DimSinkApp {
          *  就抛出异常不执行了，（因为maxwell只有在第一次执行的时候才会把数据初始化到内部表中。后续不会新增，如果
          *  要解决这个问题，那就需要将maxwell的原始数据表删除）
          */
-        // filterDS.print(">>>");
+        //filterDS.print(">>>");
 
         // TODO 6.Fink CDC读取配置表数据-配置流
         // 6.1 Flink CDC 读取配置表信息
@@ -138,7 +138,7 @@ public class DimSinkApp {
          * 刚开始启动应用程序后，会查询一次table_process表所有的历史数据，
          * 后续开始监听表的变化,持续输出数据
          */
-        mySqlDS.print(">>>");
+        mySqlDS.print("+MySQL配置表+");
 
         // TODO 7.将配置流广播-广播流
         MapStateDescriptor<String, TableProcess> state = new MapStateDescriptor<>(

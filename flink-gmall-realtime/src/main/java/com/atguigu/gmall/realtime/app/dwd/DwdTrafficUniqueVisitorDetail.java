@@ -57,7 +57,7 @@ public class DwdTrafficUniqueVisitorDetail {
 
         // TODO 3. 从 kafka dwd_traffic_page_log 主题读取日志数据，封装为流
         String topic = "dwd_traffic_page_log";
-        String groupId = "dwd_traffic_user_jump_detail";
+        String groupId = "dwd_traffic_unique_visitor_detail";
         FlinkKafkaConsumer<String> kafkaConsumer = MyKafkaUtil.getKafkaConsumer(topic, groupId);
         DataStreamSource<String> pageStrDS = env.addSource(kafkaConsumer);
 
