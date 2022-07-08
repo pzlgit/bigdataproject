@@ -65,7 +65,7 @@ public class Test02_FlinkSQLJoin {
         // tableEnv.executeSql("select e.empno,e.ename,d.deptno,d.dname from emp e right join dept d on e.deptno = d.deptno").print();
 
         // TODO 7.全外连接测试
-       tableEnv.executeSql("select e.empno,e.ename,d.deptno,d.dname from emp e full join dept d on e.deptno = d.deptno").print();
+        tableEnv.executeSql("select e.empno,e.ename,d.deptno,d.dname from emp e full join dept d on e.deptno = d.deptno").print();
 
         // TODO 8.将左连接数据写出到Kafka
         tableEnv.executeSql("CREATE TABLE kafka_emp (\n" +

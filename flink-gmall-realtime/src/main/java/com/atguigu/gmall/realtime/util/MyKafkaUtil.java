@@ -78,4 +78,36 @@ public class MyKafkaUtil {
         return kafkaProducer;
     }
 
+    /**
+     * Kafka-Source DDL 语句
+     *
+     * @param topic   数据源主题
+     * @param groupId 消费者组
+     * @return 拼接好的 Kafka 数据源 DDL 语句
+     */
+    public static String getKafkaDDL(String topic, String groupId) {
+        return " with ('connector' = 'kafka', " +
+                " 'topic' = '" + topic + "'," +
+                " 'properties.bootstrap.servers' = '" + KAFKA_HOST + "', " +
+                " 'properties.group.id' = '" + groupId + "', " +
+                " 'format' = 'json', " +
+                " 'scan.startup.mode' = 'group-offsets')";
+    }
+
+    /**
+     * FlinkSQL Kafka-Sink DDL 语句
+     *
+     * @param topic 输出到 Kafka 的目标主题
+     * @return 拼接好的 Kafka-Sink DDL 语句
+     */
+    public static String getUpsertKafkaDDL(String topic) {
+        return "WITH ( " +
+                "  'connector' = 'upsert-kafka', " +
+                "  'topic' = '" + topic + "', " +
+                "  'properties.bootstrap.servers' = '" + KAFKA_HOST + "', " +
+                "  'key.format' = 'json', " +
+                "  'value.format' = 'json' " +
+                ")";
+    }
+
 }
