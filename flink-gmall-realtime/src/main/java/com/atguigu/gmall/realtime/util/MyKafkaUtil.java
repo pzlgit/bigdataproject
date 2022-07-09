@@ -110,4 +110,22 @@ public class MyKafkaUtil {
                 ")";
     }
 
+    // Kafka-Source 获取TopicDb的SQL语句
+    public static String getTopicDbDDL(String groupId) {
+        return "create table topic_db(" +
+                "`database` String,\n" +
+                "`table` String,\n" +
+                "`type` String,\n" +
+                "`data` map<String, String>,\n" +
+                "`old` map<String, String>,\n" +
+                "`proc_time` as PROCTIME(),\n" +
+                "`ts` string\n" +
+                ") with ('connector' = 'kafka', " +
+                " 'topic' = 'topic_db'," +
+                " 'properties.bootstrap.servers' = '" + KAFKA_HOST + "', " +
+                " 'properties.group.id' = '" + groupId + "', " +
+                " 'format' = 'json', " +
+                " 'scan.startup.mode' = 'group-offsets')";
+    }
+
 }
