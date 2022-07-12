@@ -10,7 +10,6 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
 
-
 /**
  * 流量域来源关键词粒度页面浏览各窗口轻度聚合
  *
@@ -30,58 +29,52 @@ public class DwsTrafficSourceKeywordPageViewWindow {
         // 1.4 注册自定义函数
         tableEnv.createTemporarySystemFunction("ik_analyze", KeywordUDTF.class);
 
-        // TODO 2.检查点相关设置(略)
+        //TODO 2.检查点相关的设置(略)
 
-        // TODO 3.从dwd_traffic_page_log中读取页面浏览数据并指定水位线和事件时间字段
+        //TODO 3.从kafka的dwd_traffic_page_log主题中数据创建动态表，并指定watermar以及提取事件时间字段
         String topic = "dwd_traffic_page_log";
-        String groupId = "dws_traffic_source_keyword_page_view_window";
+        String groupId = "dws_traffic_keyword_group";
         tableEnv.executeSql("create table page_log(\n" +
-                "`common` map<string, string>,\n" +
-                "`page` map<string, string>,\n" +
-                "`ts` bigint,\n" +
-                "row_time AS TO_TIMESTAMP(FROM_UNIXTIME(ts/1000, 'yyyy-MM-dd HH:mm:ss')), WATERMARK FOR row_time AS row_time - INTERVAL '3' SECOND\n" +
+                " common map<string,string>,\n" +
+                " page map<string,string>,\n" +
+                " ts bigint,\n" +
+                " rowtime as TO_TIMESTAMP(FROM_UNIXTIME(ts/1000)),\n" +
+                " WATERMARK FOR rowtime AS rowtime - INTERVAL '3' SECOND\n" +
                 ")" + MyKafkaUtil.getKafkaDDL(topic, groupId));
 
-        // TODO 4.从表中过滤搜索行为
+        //TODO 4.过滤出搜索行为
         Table searchTable = tableEnv.sqlQuery("select\n" +
-                "page['item'] full_word,\n" +
-                "row_time\n" +
+                " page['item'] fullword,\n" +
+                " rowtime\n" +
                 "from page_log\n" +
-                "where page['item'] is not null\n" +
-                "and page['last_page_id'] = 'search'\n" +
-                "and page['item_type'] = 'keyword'");
+                "where page['item'] is not null and page['last_page_id']='search' and page['item_type']='keyword'");
         tableEnv.createTemporaryView("search_table", searchTable);
+        //tableEnv.executeSql("select * from search_table").print();
 
-        // TODO 5. 自定义UDTF函数对搜索内容分词并将分词函数结果和表中原有字段进行连接
-        Table splitTable = tableEnv.sqlQuery("select\n" +
-                "keyword,\n" +
-                "row_time \n" +
-                "from search_table,\n" +
-                "lateral table(ik_analyze(full_word)) as t(keyword)");
+        //TODO 5.使用自定义函数对搜索的内容进行分词  并将分词函数的结果和表中原有字段进行连接
+        Table splitTable = tableEnv.sqlQuery("SELECT keyword,rowtime FROM search_table,\n" +
+                "LATERAL TABLE(ik_analyze(fullword)) t(keyword)");
         tableEnv.createTemporaryView("split_table", splitTable);
 
-        // TODO 6. 分组、开窗、聚合计算
+        //TODO 6.分组、开窗、聚合计算
         Table KeywordBeanSearch = tableEnv.sqlQuery("select\n" +
-                "DATE_FORMAT(TUMBLE_START(row_time, INTERVAL '10' SECOND),'yyyy-MM-dd HH:mm:ss') stt,\n" +
-                "DATE_FORMAT(TUMBLE_END(row_time, INTERVAL '10' SECOND),'yyyy-MM-dd HH:mm:ss') edt,\n'" +
+                "DATE_FORMAT(TUMBLE_START(rowtime, INTERVAL '10' SECOND),'yyyy-MM-dd HH:mm:ss') stt,\n" +
+                "DATE_FORMAT(TUMBLE_END(rowtime, INTERVAL '10' SECOND),'yyyy-MM-dd HH:mm:ss') edt,\n'" +
                 GmallConstant.KEYWORD_SEARCH + "' source,\n" +
                 "keyword,\n" +
                 "count(*) keyword_count,\n" +
                 "UNIX_TIMESTAMP()*1000 ts\n" +
                 "from split_table\n" +
-                "GROUP BY TUMBLE(row_time, INTERVAL '10' SECOND),keyword");
+                "GROUP BY TUMBLE(rowtime, INTERVAL '10' SECOND),keyword");
 
-        // TODO 7. 将动态表转换为流（窗口内的关键词的数据不会变化，所以使用追加流）
-        DataStream<KeywordBean> keywordBeanDS =
-                tableEnv.toAppendStream(KeywordBeanSearch, KeywordBean.class);
+        //TODO 7.将动态表转换为流
+        DataStream<KeywordBean> resultDS = tableEnv.toAppendStream(KeywordBeanSearch, KeywordBean.class);
 
-        keywordBeanDS.print(">>>>");
-
-        // TODO 8. 将流中的数据写到ClickHouse中
-        keywordBeanDS.addSink(
-                ClickHouseUtil.<KeywordBean>getJdbcSink(
-                        "insert into dws_traffic_source_keyword_page_view_window values(?,?,?,?,?,?)"));
+        //TODO 8.将流中的数据写到ClickHouse表中
+        resultDS.print(">>>>");
+        resultDS.addSink(ClickHouseUtil.getJdbcSink("insert into dws_traffic_source_keyword_page_view_window values(?,?,?,?,?,?)"));
 
         env.execute();
     }
+
 }

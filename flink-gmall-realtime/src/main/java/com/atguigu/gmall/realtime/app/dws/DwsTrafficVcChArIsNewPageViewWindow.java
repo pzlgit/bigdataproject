@@ -3,15 +3,22 @@ package com.atguigu.gmall.realtime.app.dws;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.atguigu.gmall.realtime.bean.TrafficPageViewBean;
+import com.atguigu.gmall.realtime.util.ClickHouseUtil;
+import com.atguigu.gmall.realtime.util.DateFormatUtil;
 import com.atguigu.gmall.realtime.util.MyKafkaUtil;
 import org.apache.flink.api.common.eventtime.SerializableTimestampAssigner;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.functions.MapFunction;
-import org.apache.flink.streaming.api.datastream.DataStream;
-import org.apache.flink.streaming.api.datastream.DataStreamSource;
-import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
+import org.apache.flink.api.common.functions.ReduceFunction;
+import org.apache.flink.api.java.functions.KeySelector;
+import org.apache.flink.api.java.tuple.Tuple4;
+import org.apache.flink.streaming.api.datastream.*;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction;
+import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
+import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer;
+import org.apache.flink.util.Collector;
 
 /**
  * 流量域版本-渠道-地区-访客类别粒度页面浏览各窗口轻度聚合
@@ -21,7 +28,7 @@ import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer;
  */
 public class DwsTrafficVcChArIsNewPageViewWindow {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         // TODO 1.基本环境准备
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.setParallelism(4);
@@ -29,20 +36,18 @@ public class DwsTrafficVcChArIsNewPageViewWindow {
 
         // TODO 3.从页面浏览数据主题中获取数据，封装为流
         String topic = "dwd_traffic_page_log";
-        String groupId = "dws_traffic_channel_page_view_window";
+        String groupId = "dws_traffic_vc_ch_ar_is_new_window";
         FlinkKafkaConsumer<String> kafkaConsumer =
                 MyKafkaUtil.getKafkaConsumer(topic, groupId);
         DataStreamSource<String> pageLogSource = env.addSource(kafkaConsumer);
 
-        SingleOutputStreamOperator<JSONObject> jsonObjStream =
-                pageLogSource.map(JSON::parseObject);
+        SingleOutputStreamOperator<JSONObject> jsonObjStream = pageLogSource.map(JSON::parseObject);
 
         SingleOutputStreamOperator<TrafficPageViewBean> mainStream =
                 jsonObjStream.map(
                         new MapFunction<JSONObject, TrafficPageViewBean>() {
                             @Override
-                            public TrafficPageViewBean map(JSONObject jsonObj)
-                                    throws Exception {
+                            public TrafficPageViewBean map(JSONObject jsonObj) throws Exception {
                                 JSONObject common = jsonObj.getJSONObject("common");
                                 JSONObject page = jsonObj.getJSONObject("page");
 
@@ -176,5 +181,65 @@ public class DwsTrafficVcChArIsNewPageViewWindow {
                         )
         );
 
+        // TODO 8.按照维度分组
+        KeyedStream<TrafficPageViewBean, Tuple4<String, String, String, String>> keyedBeanStream = withWatermarkStream.keyBy(
+                new KeySelector<TrafficPageViewBean, Tuple4<String, String, String, String>>() {
+                    @Override
+                    public Tuple4<String, String, String, String> getKey(TrafficPageViewBean trafficPageViewBean) throws Exception {
+                        return Tuple4.of(
+                                trafficPageViewBean.getVc(),
+                                trafficPageViewBean.getCh(),
+                                trafficPageViewBean.getAr(),
+                                trafficPageViewBean.getIsNew()
+                        );
+                    }
+                }
+        );
+
+        // TODO 9. 开窗（滚动窗口10S,允许10S的延迟关闭窗口）
+        WindowedStream<TrafficPageViewBean, Tuple4<String, String, String, String>, TimeWindow> windowStream =
+                keyedBeanStream.window(TumblingEventTimeWindows.of(
+                                org.apache.flink.streaming.api.windowing.time.Time.seconds(10L)))
+                        .allowedLateness(org.apache.flink.streaming.api.windowing.time.Time.seconds(3L));
+
+        // TODO 10. 聚合计算
+        SingleOutputStreamOperator<TrafficPageViewBean> reducedStream =
+                windowStream.reduce(
+                        new ReduceFunction<TrafficPageViewBean>() {
+                            @Override
+                            public TrafficPageViewBean reduce(TrafficPageViewBean value1, TrafficPageViewBean value2) throws Exception {
+                                value1.setUvCt(value1.getUvCt() + value2.getUvCt());
+                                value1.setSvCt(value1.getSvCt() + value2.getSvCt());
+                                value1.setPvCt(value1.getPvCt() + value2.getPvCt());
+                                value1.setDurSum(value1.getDurSum() + value2.getDurSum());
+                                value1.setUjCt(value1.getUjCt() + value2.getUjCt());
+                                return value1;
+                            }
+                        },
+                        new ProcessWindowFunction<TrafficPageViewBean, TrafficPageViewBean, Tuple4<String, String, String, String>, TimeWindow>() {
+                            @Override
+                            public void process(Tuple4<String, String, String, String> key, Context context, Iterable<TrafficPageViewBean> elements, Collector<TrafficPageViewBean> out) throws Exception {
+
+                                String stt =
+                                        DateFormatUtil.toYmdHms(context.window().getStart());
+                                String edt =
+                                        DateFormatUtil.toYmdHms(context.window().getEnd());
+                                // 设置窗口信息
+                                for (TrafficPageViewBean element : elements) {
+                                    element.setStt(stt);
+                                    element.setEdt(edt);
+                                    element.setTs(System.currentTimeMillis());
+                                    out.collect(element);
+                                }
+                            }
+                        }
+                );
+
+        // TODO 11. 将数据写入OLAP数据库ClickHouse中
+        reducedStream.addSink(ClickHouseUtil.<TrafficPageViewBean>getJdbcSink(
+                "insert into dws_traffic_vc_ch_ar_is_new_page_view_window values(?,?,?,?,?,?,?,?,?,?,?,?)"
+        ));
+
+        env.execute();
     }
 }
