@@ -220,10 +220,13 @@ public class DwdTrafficBaseLogSplit {
                             returnActionJsonObj.put("action", actionJsonObj);
                             ctx.output(actionTag, returnActionJsonObj.toJSONString());
                         }
-                        jsonObj.remove("displays");
-                        jsonObj.remove("actions");
-                        out.collect(jsonObj.toJSONString());
                     }
+
+                    // 删除曝光和动作数据
+                    jsonObj.remove("displays");
+                    jsonObj.remove("actions");
+
+                    out.collect(jsonObj.toJSONString());
                 }
             }
         });

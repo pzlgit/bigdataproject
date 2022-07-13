@@ -31,7 +31,7 @@ public class DwsTrafficSourceKeywordPageViewWindow {
 
         //TODO 2.检查点相关的设置(略)
 
-        //TODO 3.从kafka的dwd_traffic_page_log主题中数据创建动态表，并指定watermar以及提取事件时间字段
+        //TODO 3.从kafka的dwd_traffic_page_log主题中数据创建动态表，并指定watermark以及提取事件时间字段
         String topic = "dwd_traffic_page_log";
         String groupId = "dws_traffic_keyword_group";
         tableEnv.executeSql("create table page_log(\n" +
@@ -42,6 +42,8 @@ public class DwsTrafficSourceKeywordPageViewWindow {
                 " WATERMARK FOR rowtime AS rowtime - INTERVAL '3' SECOND\n" +
                 ")" + MyKafkaUtil.getKafkaDDL(topic, groupId));
 
+       // tableEnv.executeSql("select * from page_log").print();
+
         //TODO 4.过滤出搜索行为
         Table searchTable = tableEnv.sqlQuery("select\n" +
                 " page['item'] fullword,\n" +
@@ -51,10 +53,13 @@ public class DwsTrafficSourceKeywordPageViewWindow {
         tableEnv.createTemporaryView("search_table", searchTable);
         //tableEnv.executeSql("select * from search_table").print();
 
-        //TODO 5.使用自定义函数对搜索的内容进行分词  并将分词函数的结果和表中原有字段进行连接
+        //TODO 5.使用自定义函数对搜索的内容进行分词，并将分词函数的结果和表中原有字段进行连接
         Table splitTable = tableEnv.sqlQuery("SELECT keyword,rowtime FROM search_table,\n" +
                 "LATERAL TABLE(ik_analyze(fullword)) t(keyword)");
         tableEnv.createTemporaryView("split_table", splitTable);
+
+        //tableEnv.executeSql("select * from split_table").print();
+
 
         //TODO 6.分组、开窗、聚合计算
         Table KeywordBeanSearch = tableEnv.sqlQuery("select\n" +
