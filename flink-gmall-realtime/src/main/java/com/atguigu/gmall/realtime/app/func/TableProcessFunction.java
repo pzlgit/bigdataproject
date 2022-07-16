@@ -58,6 +58,11 @@ public class TableProcessFunction extends BroadcastProcessFunction<JSONObject, S
             filterColumn(sinkColumns, data);
             // 增加sink_table属性，用于标识数据写入那个表
             data.put("sink_table", tableProcess.getSinkTable());
+
+            String type = jsonObj.getString("type");
+            // 将操作类型加入到 JSONObject 中
+            data.put("type", type);
+
             // 将数据向下游传递
             out.collect(data);
         } else {

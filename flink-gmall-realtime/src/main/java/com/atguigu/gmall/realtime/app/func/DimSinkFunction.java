@@ -5,6 +5,7 @@ import com.alibaba.druid.pool.DruidDataSource;
 import com.alibaba.druid.pool.DruidPooledConnection;
 import com.alibaba.fastjson.JSONObject;
 import com.atguigu.gmall.realtime.common.GmallConfig;
+import com.atguigu.gmall.realtime.util.DimUtil;
 import com.atguigu.gmall.realtime.util.DruidDSUtil;
 import com.atguigu.gmall.realtime.util.PhoenixUtil;
 import org.apache.commons.lang3.StringUtils;
@@ -35,6 +36,10 @@ public class DimSinkFunction extends RichSinkFunction<JSONObject> {
         // 删除SinkTable属性
         jsonObj.remove("sink_table");
 
+        // 获取操作类型
+        String type = jsonObj.getString("type");
+        jsonObj.remove("type");
+
         // 拼接HBase SQL
         String sql = "upsert into " + GmallConfig.PHOENIX_SCHEMA + "." + sinkTable
                 + "(" + StringUtils.join(jsonObj.keySet(), ",") + ") " +
@@ -44,6 +49,11 @@ public class DimSinkFunction extends RichSinkFunction<JSONObject> {
         // 执行SQL
         DruidPooledConnection connection = druidDataSource.getConnection();
         PhoenixUtil.executeSQL(sql, connection);
+
+        // 如果操作类型为 update，则清除 redis 中的缓存信息
+        if ("update".equals(type)) {
+            DimUtil.deleteCached(sinkTable, jsonObj.getString("id"));
+        }
     }
 
 }
